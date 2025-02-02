@@ -3,13 +3,16 @@
 This is a Bash script to automate the setup of anonymity features on Kali Linux. It enables MAC address spoofing, Tor routing, Proxychains configuration, and IPv6 disabling with a single command.
 
 ## Features
-- Change MAC address randomly.
-- Route traffic through Tor using Proxychains.
-- Disable IPv6 to prevent leaks.
-- Clear command history and system logs.
-- Easy enable/disable functionality.
+- MAC Address Spoofing
+- Tor Routing
+- Proxychains Configuration
+- IPv6 Disabling
+- Automatic Installation of Missing Dependencies
+- User Input-Based Execution
 
 ## Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/anonymity-tool.git
+Clone this repository using:
+```bash
+git clone https://github.com/Aryann019x/anonymity-tool.git
+cd anonymity-tool
+chmod +x anonymity_tool.sh
