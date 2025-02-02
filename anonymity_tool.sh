@@ -118,4 +118,54 @@ disable_anonymity() {
     sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
     sudo sysctl -w net.ipv6.conf.default.disable_ipv6=0
     sudo sed -i '/net.ipv6.conf.all.disable_ipv6/d' /etc/sysctl.conf
-    sudo sed -i '/net.ipv6.co
+    sudo sed -i '/net.ipv6.conf.default.disable_ipv6/d' /etc/sysctl.conf
+    sudo sysctl -p
+
+    echo "[-] Anonymity Disabled!"
+}
+
+# Function to clear logs
+clear_logs() {
+    echo "[+] Clearing system logs..."
+    sudo rm -rf /var/log/* || {
+        echo "[-] Failed to clear logs. Exiting."
+        exit 1
+    }
+    echo "[+] Logs cleared!"
+}
+
+# Function to display help
+display_help() {
+    display_header
+    echo "Usage: ./anonymity_tool.sh"
+    echo "Options:"
+    echo "  1. Enable Anonymity"
+    echo "  2. Disable Anonymity"
+    echo "  3. Check & Install Dependencies"
+    echo "  4. Clear System Logs"
+    echo "  5. Help"
+    echo "  6. Exit"
+}
+
+# Main menu
+while true; do
+    display_header
+    echo "1. Enable Anonymity"
+    echo "2. Disable Anonymity"
+    echo "3. Check & Install Dependencies"
+    echo "4. Clear System Logs"
+    echo "5. Help"
+    echo "6. Exit"
+    read -p "Choose an option: " choice
+
+    case $choice in
+        1) enable_anonymity ;;
+        2) disable_anonymity ;;
+        3) check_dependencies ;;
+        4) clear_logs ;;
+        5) display_help ;;
+        6) exit ;;
+        *) echo "[-] Invalid option! Try again." ;;
+    esac
+    read -p "Press Enter to continue..."
+done
