@@ -36,7 +36,7 @@ This script provides an easy way to enable and disable anonymity on a Kali Linux
 1. Clone the repository:
 
     ```bash
-    git clone https://github.com/cybermad7373/anonymity-tool
+    git clone https://github.com/Aryann019x/anonymity-tool
     cd anonymity-tool
     ```
 
