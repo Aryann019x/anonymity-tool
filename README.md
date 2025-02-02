@@ -33,17 +33,24 @@ This script provides an easy way to enable and disable anonymity on a Kali Linux
 
 ## Usage
 
-1. Clone or download the script to your system.
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/cybermad7373/anonymity-tool
+    cd anonymity-tool
+    ```
+
 2. Give the script execute permissions:
+
     ```bash
     chmod +x anonymity_tool.sh
     ```
 
 3. Run the script:
-    ```bash
-    ./anonymity_tool.sh
-    ```
 
+    ```bash
+    sudo ./anonymity_tool.sh
+    ```
 4. Follow the on-screen menu to:
     - **Enable Anonymity**: Spoof MAC, start Tor, configure Proxychains, and disable IPv6.
     - **Disable Anonymity**: Restore MAC, stop Tor, and enable IPv6.
