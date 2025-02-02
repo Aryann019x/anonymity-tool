@@ -49,21 +49,33 @@ enable_anonymity() {
     interface=$(get_interface)
     echo "[+] Enabling anonymity on interface $interface..."
     
+    # Check if the interface exists
+    if ! ip link show $interface &> /dev/null; then
+        echo "[-] Interface $interface does not exist. Exiting."
+        return
+    fi
+
     # Change MAC Address
     echo "[+] Spoofing MAC Address..."
-    sudo ifconfig $interface down
+    sudo ip link set $interface down || {
+        echo "[-] Failed to bring down $interface. Exiting."
+        return
+    }
     sudo macchanger -r $interface || {
         echo "[-] Failed to spoof MAC address. Exiting."
-        sudo ifconfig $interface up
-        exit 1
+        sudo ip link set $interface up
+        return
     }
-    sudo ifconfig $interface up
+    sudo ip link set $interface up || {
+        echo "[-] Failed to bring up $interface. Exiting."
+        return
+    }
     
     # Start Tor Service
     echo "[+] Starting Tor..."
     sudo systemctl start tor || {
         echo "[-] Failed to start Tor. Exiting."
-        exit 1
+        return
     }
     
     # Configure Proxychains
@@ -92,19 +104,25 @@ disable_anonymity() {
 
     # Restore MAC Address
     echo "[-] Restoring MAC Address..."
-    sudo ifconfig $interface down
+    sudo ip link set $interface down || {
+        echo "[-] Failed to bring down $interface. Exiting."
+        return
+    }
     sudo macchanger -p $interface || {
         echo "[-] Failed to restore MAC address. Exiting."
-        sudo ifconfig $interface up
-        exit 1
+        sudo ip link set $interface up
+        return
     }
-    sudo ifconfig $interface up
+    sudo ip link set $interface up || {
+        echo "[-] Failed to bring up $interface. Exiting."
+        return
+    }
 
     # Stop Tor Service
     echo "[-] Stopping Tor..."
     sudo systemctl stop tor || {
         echo "[-] Failed to stop Tor. Exiting."
-        exit 1
+        return
     }
 
     # Enable IPv6
