@@ -35,10 +35,11 @@ get_interface() {
     ip -o link show | awk -F': ' '{print $2}'
     while true; do
         read -p "Enter the network interface (e.g., eth0, wlan0): " interface
-        if ip link show $interface &> /dev/null; then
+        # Check if the interface exists and is up
+        if ip link show $interface | grep -q "state UP"; then
             break
         else
-            echo "[-] Invalid interface. Please try again."
+            echo "[-] Invalid or down interface. Please try again."
         fi
     done
     echo $interface
@@ -48,12 +49,6 @@ get_interface() {
 enable_anonymity() {
     interface=$(get_interface)
     echo "[+] Enabling anonymity on interface $interface..."
-    
-    # Check if the interface is up
-    if ! ip link show $interface | grep -q "UP"; then
-        echo "[-] The network interface $interface is not up. Trying to bring it up..."
-        sudo ifconfig $interface up
-    fi
     
     # Change MAC Address
     echo "[+] Spoofing MAC Address..."
