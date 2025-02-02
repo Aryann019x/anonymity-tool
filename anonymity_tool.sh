@@ -34,6 +34,7 @@ validate_interface() {
         handle_error "Interface does not exist"
         return 1
     fi
+    return 0
 }
 
 # Function to check and install missing dependencies
@@ -46,7 +47,7 @@ check_dependencies() {
     if ! apt-get update &>/dev/null; then
         handle_error "Failed to update package lists. Check your internet connection."
         return 1
-    }
+    fi
 
     for pkg in "${packages[@]}"; do
         if ! command -v "$pkg" &>/dev/null; then
