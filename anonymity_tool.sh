@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# Function to list network interfaces
+# Function to list network interfaces (excluding lo)
 list_interfaces() {
     echo "Available interfaces:"
-    interfaces=($(ip -o link show | awk -F': ' '{print $2}'))
+    interfaces=($(ip -o link show | awk -F': ' '{print $2}' | grep -v 'lo'))
     for i in "${!interfaces[@]}"; do
         echo "$((i+1)). ${interfaces[$i]}"
     done
