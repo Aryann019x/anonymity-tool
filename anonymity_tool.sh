@@ -35,19 +35,21 @@ get_interface() {
     while true; do
         read -p "Select interface number: " num
         if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#interfaces[@]} )); then
-            echo "${interfaces[$((num-1))]}"
-            return
+            selected_interface="${interfaces[$((num-1))]}"  # Store correct selection
+            echo "[+] Selected: $selected_interface"
+            break
         else
             echo "[-] Invalid selection. Try again."
         fi
     done
 }
 
-# Function to check and install dependencies
+# Function to check and install missing dependencies
 check_dependencies() {
-    echo "[+] Checking for required tools..."
+    echo "Checking for required tools..."
     local packages=("macchanger" "tor" "proxychains")
-    
+    local missing=0
+
     if ! apt-get update &>/dev/null; then
         handle_error "Failed to update package lists. Check your internet connection."
         return 1
@@ -55,71 +57,101 @@ check_dependencies() {
 
     for pkg in "${packages[@]}"; do
         if ! command -v "$pkg" &>/dev/null; then
-            echo "[-] Installing $pkg..."
+            echo "[-] $pkg is not installed. Installing..."
             if ! apt-get install -y "$pkg"; then
                 handle_error "Failed to install $pkg"
-                return 1
+                missing=1
             fi
         else
             echo "[+] $pkg is already installed"
         fi
     done
+
+    if [[ $missing -eq 1 ]]; then
+        handle_error "Some dependencies could not be installed"
+        return 1
+    fi
     
     echo "[+] All dependencies are installed"
     return 0
 }
 
+# Function to backup configuration files
+backup_config() {
+    local file="$1"
+    local backup_file="${file}.backup_$(date +%Y%m%d_%H%M%S)"
+    if [[ -f "$file" ]]; then
+        cp "$file" "$backup_file" || handle_error "Failed to create backup of $file"
+    fi
+}
+
 # Function to enable anonymity
 enable_anonymity() {
-    local interface
-    interface=$(get_interface)
-    echo "[+] Selected: $interface"
-    echo "[+] Enabling anonymity for $interface..."
-    
+    get_interface
+    echo "[+] Enabling anonymity on interface $selected_interface..."
+
+    # Backup configurations
+    backup_config "/etc/proxychains.conf"
+    backup_config "/etc/sysctl.conf"
+
     # Change MAC Address
-    echo "[+] Changing MAC address..."
-    ifconfig "$interface" down
-    macchanger -r "$interface"
-    ifconfig "$interface" up
+    echo "[+] Spoofing MAC Address..."
+    ifconfig "$selected_interface" down
+    if ! macchanger -r "$selected_interface"; then
+        handle_error "Failed to spoof MAC address"
+        ifconfig "$selected_interface" up
+        return 1
+    fi
+    ifconfig "$selected_interface" up
 
     # Start Tor Service
-    echo "[+] Starting Tor service..."
+    echo "[+] Starting Tor..."
     systemctl start tor || handle_error "Failed to start Tor"
 
     # Configure Proxychains
     echo "[+] Configuring Proxychains..."
-    echo -e "strict_chain\nproxy_dns\nremote_dns_subnet 224\n[ProxyList]\nsocks5 127.0.0.1 9050" > /etc/proxychains.conf
+    if ! grep -q "socks5 127.0.0.1 9050" /etc/proxychains.conf; then
+        echo -e "strict_chain\nproxy_dns\nremote_dns_subnet 224\n[ProxyList]\nsocks5 127.0.0.1 9050" > /etc/proxychains.conf || handle_error "Failed to configure Proxychains"
+    else
+        echo "[+] Proxychains is already configured"
+    fi
 
-    # Disable IPv6
+    # Disable IPv6 (Ensure file exists first)
     echo "[+] Disabling IPv6..."
-    [[ ! -f /etc/sysctl.conf ]] && touch /etc/sysctl.conf
-    echo -e "net.ipv6.conf.all.disable_ipv6=1\nnet.ipv6.conf.default.disable_ipv6=1" >> /etc/sysctl.conf
-    sysctl -p
+    touch /etc/sysctl.conf
+    {
+        echo "net.ipv6.conf.all.disable_ipv6 = 1"
+        echo "net.ipv6.conf.default.disable_ipv6 = 1"
+    } >> /etc/sysctl.conf
+    sysctl -p || handle_error "Failed to apply sysctl changes"
 
-    echo "[+] Anonymity enabled!"
+    echo "[+] Anonymity Enabled!"
 }
 
 # Function to disable anonymity
 disable_anonymity() {
-    local interface
-    interface=$(get_interface)
-    echo "[-] Disabling anonymity for $interface..."
+    get_interface
+    echo "[-] Disabling anonymity on interface $selected_interface..."
 
     # Restore MAC Address
     echo "[-] Restoring MAC Address..."
-    ifconfig "$interface" down
-    macchanger -p "$interface"
-    ifconfig "$interface" up
+    ifconfig "$selected_interface" down
+    if ! macchanger -p "$selected_interface"; then
+        handle_error "Failed to restore MAC address"
+    fi
+    ifconfig "$selected_interface" up
 
     # Stop Tor Service
     echo "[-] Stopping Tor..."
-    systemctl stop tor
+    systemctl stop tor || handle_error "Failed to stop Tor"
 
     # Enable IPv6
     echo "[-] Enabling IPv6..."
     sed -i '/net.ipv6.conf.all.disable_ipv6/d' /etc/sysctl.conf
     sed -i '/net.ipv6.conf.default.disable_ipv6/d' /etc/sysctl.conf
-    sysctl -p
+    sysctl -w net.ipv6.conf.all.disable_ipv6=0
+    sysctl -w net.ipv6.conf.default.disable_ipv6=0
+    sysctl -p || handle_error "Failed to apply sysctl changes"
 
     echo "[-] Anonymity Disabled!"
 }
@@ -131,7 +163,8 @@ clear_logs() {
 
     for log_file in "${log_files[@]}"; do
         if [[ -f "$log_file" ]]; then
-            > "$log_file" || handle_error "Failed to clear $log_file"
+            backup_config "$log_file"
+            cat /dev/null > "$log_file" || handle_error "Failed to clear $log_file"
         fi
     done
 
