@@ -1,196 +1,121 @@
 #!/bin/bash
 
-# Function to handle errors
-handle_error() {
-    local error_msg="$1"
-    echo "[-] Error: $error_msg"
-    return 1
-}
-
-# Function to check root privileges
-check_root() {
-    if [[ $EUID -ne 0 ]]; then
-        handle_error "This script must be run as root"
-        exit 1
-    fi
-}
-
-# Function to display a header
-display_header() {
-    clear
-    echo "========================="
-    echo "  Anonymity Tool - Kali"
-    echo "========================="
-}
-
-# Function to validate and select network interface
-get_interface() {
+# Function to list network interfaces
+list_interfaces() {
     echo "Available interfaces:"
-    local interfaces=($(ip -o link show | awk -F': ' '{print $2}'))
-    
+    interfaces=($(ip -o link show | awk -F': ' '{print $2}'))
     for i in "${!interfaces[@]}"; do
         echo "$((i+1)). ${interfaces[$i]}"
     done
-    
-    while true; do
-        read -p "Select interface number: " num
-        if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#interfaces[@]} )); then
-            selected_interface="${interfaces[$((num-1))]}"  # Store correct selection
-            echo "[+] Selected: $selected_interface"
-            break
-        else
-            echo "[-] Invalid selection. Try again."
-        fi
-    done
-}
-
-# Function to check and install missing dependencies
-check_dependencies() {
-    echo "Checking for required tools..."
-    local packages=("macchanger" "tor" "proxychains")
-    local missing=0
-
-    if ! apt-get update &>/dev/null; then
-        handle_error "Failed to update package lists. Check your internet connection."
-        return 1
-    fi
-
-    for pkg in "${packages[@]}"; do
-        if ! command -v "$pkg" &>/dev/null; then
-            echo "[-] $pkg is not installed. Installing..."
-            if ! apt-get install -y "$pkg"; then
-                handle_error "Failed to install $pkg"
-                missing=1
-            fi
-        else
-            echo "[+] $pkg is already installed"
-        fi
-    done
-
-    if [[ $missing -eq 1 ]]; then
-        handle_error "Some dependencies could not be installed"
-        return 1
-    fi
-    
-    echo "[+] All dependencies are installed"
-    return 0
-}
-
-# Function to backup configuration files
-backup_config() {
-    local file="$1"
-    local backup_file="${file}.backup_$(date +%Y%m%d_%H%M%S)"
-    if [[ -f "$file" ]]; then
-        cp "$file" "$backup_file" || handle_error "Failed to create backup of $file"
-    fi
 }
 
 # Function to enable anonymity
 enable_anonymity() {
-    get_interface
-    echo "[+] Enabling anonymity on interface $selected_interface..."
+    list_interfaces
+    read -p "Select interface number: " iface_num
+    selected_iface=${interfaces[$((iface_num-1))]}
 
-    # Backup configurations
-    backup_config "/etc/proxychains.conf"
-    backup_config "/etc/sysctl.conf"
+    if [ -z "$selected_iface" ]; then
+        echo "[-] Invalid selection!"
+        return
+    fi
 
-    # Change MAC Address
+    echo "[+] Selected: $selected_iface"
+    echo "[+] Enabling anonymity on interface $selected_iface..."
+    
     echo "[+] Spoofing MAC Address..."
-    ifconfig "$selected_interface" down
-    if ! macchanger -r "$selected_interface"; then
-        handle_error "Failed to spoof MAC address"
-        ifconfig "$selected_interface" up
-        return 1
-    fi
-    ifconfig "$selected_interface" up
+    sudo ip link set "$selected_iface" down
+    sudo macchanger -r "$selected_iface"
+    sudo ip link set "$selected_iface" up
 
-    # Start Tor Service
     echo "[+] Starting Tor..."
-    systemctl start tor || handle_error "Failed to start Tor"
+    sudo systemctl start tor
 
-    # Configure Proxychains
     echo "[+] Configuring Proxychains..."
-    if ! grep -q "socks5 127.0.0.1 9050" /etc/proxychains.conf; then
-        echo -e "strict_chain\nproxy_dns\nremote_dns_subnet 224\n[ProxyList]\nsocks5 127.0.0.1 9050" > /etc/proxychains.conf || handle_error "Failed to configure Proxychains"
-    else
-        echo "[+] Proxychains is already configured"
-    fi
+    sudo cp /etc/proxychains.conf /etc/proxychains.conf.backup
+    echo "socks5 127.0.0.1 9050" | sudo tee -a /etc/proxychains.conf > /dev/null
 
-    # Disable IPv6 (Ensure file exists first)
     echo "[+] Disabling IPv6..."
-    touch /etc/sysctl.conf
-    {
-        echo "net.ipv6.conf.all.disable_ipv6 = 1"
-        echo "net.ipv6.conf.default.disable_ipv6 = 1"
-    } >> /etc/sysctl.conf
-    sysctl -p || handle_error "Failed to apply sysctl changes"
+    sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
 
     echo "[+] Anonymity Enabled!"
 }
 
 # Function to disable anonymity
 disable_anonymity() {
-    get_interface
-    echo "[-] Disabling anonymity on interface $selected_interface..."
+    list_interfaces
+    read -p "Select interface number: " iface_num
+    selected_iface=${interfaces[$((iface_num-1))]}
 
-    # Restore MAC Address
-    echo "[-] Restoring MAC Address..."
-    ifconfig "$selected_interface" down
-    if ! macchanger -p "$selected_interface"; then
-        handle_error "Failed to restore MAC address"
+    if [ -z "$selected_iface" ]; then
+        echo "[-] Invalid selection!"
+        return
     fi
-    ifconfig "$selected_interface" up
 
-    # Stop Tor Service
+    echo "[+] Selected: $selected_iface"
+    echo "[-] Disabling anonymity on interface $selected_iface..."
+
+    echo "[-] Restoring MAC Address..."
+    sudo ip link set "$selected_iface" down
+    sudo macchanger -p "$selected_iface"
+    sudo ip link set "$selected_iface" up
+
     echo "[-] Stopping Tor..."
-    systemctl stop tor || handle_error "Failed to stop Tor"
+    sudo systemctl stop tor
 
-    # Enable IPv6
     echo "[-] Enabling IPv6..."
-    sed -i '/net.ipv6.conf.all.disable_ipv6/d' /etc/sysctl.conf
-    sed -i '/net.ipv6.conf.default.disable_ipv6/d' /etc/sysctl.conf
-    sysctl -w net.ipv6.conf.all.disable_ipv6=0
-    sysctl -w net.ipv6.conf.default.disable_ipv6=0
-    sysctl -p || handle_error "Failed to apply sysctl changes"
+    sudo sysctl -w net.ipv6.conf.all.disable_ipv6=0
+    sudo sysctl -w net.ipv6.conf.default.disable_ipv6=0
 
     echo "[-] Anonymity Disabled!"
 }
 
-# Function to clear logs
-clear_logs() {
-    echo "[+] Clearing system logs..."
-    local log_files=("/var/log/auth.log" "/var/log/syslog" "/var/log/tor")
-
-    for log_file in "${log_files[@]}"; do
-        if [[ -f "$log_file" ]]; then
-            backup_config "$log_file"
-            cat /dev/null > "$log_file" || handle_error "Failed to clear $log_file"
+# Function to check dependencies
+check_dependencies() {
+    echo "[+] Checking dependencies..."
+    deps=("macchanger" "tor" "proxychains")
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            echo "[-] $dep is missing. Installing..."
+            sudo apt install -y "$dep"
+        else
+            echo "[+] $dep is installed!"
         fi
     done
+}
 
+# Function to clear logs
+clear_logs() {
+    echo "[+] Clearing logs..."
+    sudo journalctl --vacuum-time=1s
+    sudo rm -rf ~/.bash_history
+    sudo rm -rf /var/log/*
     echo "[+] Logs cleared!"
 }
 
-# Main execution
-check_root
-
-# Main menu
+# Menu system
 while true; do
-    display_header
+    clear
+    echo "========================="
+    echo "  Anonymity Tool - Kali  "
+    echo "========================="
     echo "1. Enable Anonymity"
     echo "2. Disable Anonymity"
     echo "3. Check Dependencies"
     echo "4. Clear Logs"
     echo "5. Exit"
-    read -p "Choose an option: " choice
+    echo -n "Choose an option: "
+    read choice
 
     case $choice in
         1) enable_anonymity ;;
         2) disable_anonymity ;;
         3) check_dependencies ;;
         4) clear_logs ;;
-        5) exit 0 ;;
-        *) echo "[-] Invalid option! Try again." ;;
+        5) echo "Exiting..."; exit ;;
+        *) echo "Invalid option!"; sleep 1 ;;
     esac
-    read -p "Press Enter to continue..."
+    echo "Press Enter to continue..."
+    read
 done
