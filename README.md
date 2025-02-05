@@ -1,4 +1,4 @@
-# Secure Kali Linux Anonymity Tool v6.0
+# Secure Kali Linux Anonymity Tool v1.1
 
 ⚠️ **IMPORTANT: DEVELOPMENT STATUS** ⚠️
 
