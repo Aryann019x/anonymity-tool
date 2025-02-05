@@ -211,7 +211,7 @@ show_status() {
 while true; do
     clear
     echo -e "${BLUE}════════════════════════════════════"
-    echo -e "${BLUE}  Secure Kali Anonymity Tool v6.0"
+    echo -e "${BLUE}  Secure Kali Anonymity Tool v1.1"
     echo -e "${LAVENDER}  Created by: Aryann019x"
     echo -e "${BLUE}════════════════════════════════════"
     echo -e "${WHITE}[1] Enable Anonymity"
