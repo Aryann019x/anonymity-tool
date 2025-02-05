@@ -1,0 +1,38 @@
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+2025-02-03 13:19:45 - DNS added via NetworkManager.
+2025-02-03 13:19:45 - Made resolv.conf immutable.
+2025-02-03 13:19:54 - Network not reachable after 3 attempts.
+2025-02-03 13:19:54 - Exiting due to no internet connection.
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
+[34m[1m🔹 Enabling anonymity...[0m
+[34m[1m🔹 Disabling anonymity...[0m
